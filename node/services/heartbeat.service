@@ -1,0 +1,15 @@
+[Unit]
+Description=Heartbeat Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/heartbeat
+EnvironmentFile=/opt/heartbeat/.env
+ExecStart=/opt/heartbeat/.venv/bin/python /opt/heartbeat/heartbeat.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
