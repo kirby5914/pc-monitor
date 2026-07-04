@@ -4,27 +4,41 @@ import threading
 import requests
 import os
 from dotenv import load_dotenv
+import json
+from pathlib import Path
 
-# Load .env (webhook lives here)
+STATE_FILE = Path("/opt/pc-monitor/state/json")
+
+# Load environment variables (.env)
 load_dotenv()
-
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
+
+def load_state():
+    if STATE_FILE.exists():
+        with open(STATE_FILE, "r") as f:
+            data = json.load(f)
+            return (
+                set(data.get("known_pcs", [])),
+                data.get("last_seen", {}),
+                set(data.get("alerted", []))
+            )
+    return set(), {}, set()
+
 
 app = Flask(__name__)
 
-# How long before we say a PC is down (seconds)
-TIMEOUT = 30
+# ===== CONFIG =====
+TIMEOUT = 30        # seconds before OFFLINE
+CHECK_INTERVAL = 5  # loop delay
 
-# heartbeat storage
-last_seen = {}
-
-# track alert state so we don’t spam Discord
-alerted = set()
+# ===== STATE =====
+known_pcs, last_seen, alerted = load_state()
 
 
+# ===== DISCORD =====
 def send_discord(message):
     if not DISCORD_WEBHOOK:
-        print("⚠️ No webhook set in .env")
+        print("⚠️ Missing DISCORD_WEBHOOK")
         return
 
     try:
@@ -33,6 +47,7 @@ def send_discord(message):
         print("Discord error:", e)
 
 
+# ===== HEARTBEAT ENDPOINT =====
 @app.route("/heartbeat", methods=["POST"])
 def heartbeat():
     data = request.json
@@ -41,34 +56,42 @@ def heartbeat():
         return "missing name", 400
 
     pc_name = data["name"]
+
+    # register PC
+    known_pcs.add(pc_name)
     last_seen[pc_name] = time.time()
 
-    print(f"[{time.strftime('%H:%M:%S')}] Heartbeat received from {pc_name}", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] heartbeat from {pc_name}", flush=True)
 
     return "ok"
 
 
+# ===== MONITOR LOOP =====
 def monitor_loop():
     while True:
         now = time.time()
 
-        for pc, last in list(last_seen.items()):
+        for pc in list(known_pcs):
+            last = last_seen.get(pc, 0)
 
-            # OFFLINE DETECTION
+            # OFFLINE
             if now - last > TIMEOUT:
                 if pc not in alerted:
                     send_discord(f"🚨 **OFFLINE:** `{pc}` is not responding")
                     alerted.add(pc)
 
-            # RECOVERY DETECTION
+            # ONLINE / RECOVERY
             else:
                 if pc in alerted:
                     send_discord(f"✅ **ONLINE:** `{pc}` is back online")
                     alerted.remove(pc)
 
-        time.sleep(5)
+        time.sleep(CHECK_INTERVAL)
 
 
+# ===== START =====
 if __name__ == "__main__":
     threading.Thread(target=monitor_loop, daemon=True).start()
     app.run(host="0.0.0.0", port=5000)
+
+    
