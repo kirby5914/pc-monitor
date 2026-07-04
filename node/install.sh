@@ -1,50 +1,51 @@
 #!/bin/bash
 set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "== Heartbeat Installer =="
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run this installer as root."
+    echo "Run as root"
     exit 1
 fi
 
-# Create install directory
-mkdir -p /opt/heartbeat
+INSTALL_DIR="/opt/heartbeat"
+REPO="https://raw.githubusercontent.com/kirby5914/pc-monitor/main/node"
 
-# Copy heartbeat script
-cp "$SCRIPT_DIR/heartbeat.py" /opt/heartbeat/
+mkdir -p "$INSTALL_DIR"
+
+echo "Downloading files..."
+
+curl -fsSL "$REPO/heartbeat.py" -o "$INSTALL_DIR/heartbeat.py"
+curl -fsSL "$REPO/.env.example" -o "$INSTALL_DIR/.env"
 
 echo "Setting up node configuration..."
 
 read -p "Enter node name (e.g. Plex): " NODE_NAME
 read -p "Enter Pi server URL: " PI_SERVER
 
-cat > /opt/heartbeat/.env <<EOF
+cat > "$INSTALL_DIR/.env" <<EOF
 NODE_NAME=$NODE_NAME
 PI_SERVER=$PI_SERVER
 EOF
 
-cd /opt/heartbeat
+cd "$INSTALL_DIR"
 
 echo "Creating Python virtual environment..."
 python3 -m venv .venv
 
-echo "Installing Python packages..."
+echo "Installing dependencies..."
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install requests python-dotenv
 
 echo "Installing systemd service..."
 
-cp "$SCRIPT_DIR/services/heartbeat.service" /etc/systemd/system/heartbeat.service
+curl -fsSL "$REPO/services/heartbeat.service" -o /etc/systemd/system/heartbeat.service
 
 systemctl daemon-reload
 systemctl enable heartbeat.service
 systemctl restart heartbeat.service
 
 echo ""
-echo "===================================="
 echo "✅ Heartbeat installed successfully!"
-echo "===================================="
-echo ""
 echo "Service status:"
-systemctl --no-pager status heartbeat.service
+systemctl status heartbeat.service --no-pager
