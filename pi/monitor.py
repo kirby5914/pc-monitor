@@ -11,8 +11,8 @@ DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 app = Flask(__name__)
 
 # ===== CONFIG =====
-TIMEOUT = 6
-CHECK_INTERVAL = 1
+TIMEOUT = 3
+CHECK_INTERVAL = 0.5
 
 # ===== STATE =====
 last_seen = {}
