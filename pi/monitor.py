@@ -43,6 +43,8 @@ def heartbeat():
     pc_name = data["name"]
     last_seen[pc_name] = time.time()
 
+    print(f"[{time.strftime('%H:%M:%S')}] Heartbeat received from {pc_name}", flush=True)
+
     return "ok"
 
 
