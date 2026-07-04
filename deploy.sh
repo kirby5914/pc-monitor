@@ -19,6 +19,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 echo "🔁 Restarting service..."
+sudo systemctl daemon-reload
 sudo systemctl restart pc-monitor
 
 sleep 2
