@@ -24,6 +24,18 @@ def load_state():
             )
     return set(), {}, set()
 
+def save_state():
+    data = {
+        "known_pcs": list(known_pcs),
+        "last_seen": last_seen,
+        "alerted": list(alerted)
+    }
+
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        print("State save failed:", e)
 
 app = Flask(__name__)
 
