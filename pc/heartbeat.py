@@ -6,7 +6,7 @@ import os
 PI_SERVER = os.getenv("PI_SERVER", "http://192.168.1.180:5000")
 
 NAME = socket.gethostname()
-INTERVAL = 10
+INTERVAL = 2
 
 print(f"Heartbeat started: {NAME}")
 
