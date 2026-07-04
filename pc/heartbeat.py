@@ -1,32 +1,23 @@
-import os
 import socket
 import time
-
 import requests
-from dotenv import load_dotenv
+import os
 
-load_dotenv()
+PI_SERVER = os.getenv("PI_SERVER", "http://192.168.1.180:5000")
 
-# URL of your Raspberry Pi monitor
-PI_SERVER = os.getenv("PI_SERVER")
+NAME = socket.gethostname()
+INTERVAL = 10
 
-# Use the computer's hostname automatically
-PC_NAME = socket.gethostname()
-
-# How often to send a heartbeat
-HEARTBEAT_INTERVAL = 10
-
-print(f"Starting heartbeat for {PC_NAME}")
+print(f"Heartbeat started: {NAME}")
 
 while True:
     try:
         requests.post(
             f"{PI_SERVER}/heartbeat",
-            json={"name": PC_NAME},
-            timeout=5,
+            json={"name": NAME},
+            timeout=5
         )
-        print(f"Heartbeat sent from {PC_NAME}")
-    except Exception as e:
-        print(f"Failed to contact monitor: {e}")
+    except Exception:
+        pass
 
-    time.sleep(HEARTBEAT_INTERVAL)
+    time.sleep(INTERVAL)
