@@ -1,7 +1,14 @@
 #!/bin/bash
 set -e
 
+if [ "$EUID" -ne 0 ]; then
+    echo "Run: sudo ./ubuntupush.sh"
+    exit 1
+fi
+
 cd /opt/pc-monitor
+
+
 
 echo "🔄 Pulling latest code..."
 git fetch origin main
@@ -17,8 +24,8 @@ echo "📦 Installing dependencies..."
 ./.venv/bin/pip install -r requirements.txt
 
 echo "🔁 Restarting service..."
-sudo systemctl daemon-reload
-sudo systemctl restart pc-monitor.service
+systemctl daemon-reload
+systemctl restart pc-monitor.service
 
 sleep 2
 
