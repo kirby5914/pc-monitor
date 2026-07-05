@@ -17,8 +17,8 @@ echo "📦 Installing dependencies..."
 ./.venv/bin/pip install -r requirements.txt
 
 echo "🔁 Restarting service..."
-systemctl daemon-reload
-systemctl restart pc-monitor.service
+sudo systemctl daemon-reload
+sudo systemctl restart pc-monitor.service
 
 sleep 2
 
