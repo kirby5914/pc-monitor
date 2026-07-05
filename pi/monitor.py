@@ -3,73 +3,56 @@ import time
 import threading
 import requests
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
-DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 
 app = Flask(__name__)
 
-# ===== CONFIG =====
-TIMEOUT = 3
-CHECK_INTERVAL = 0.5
+DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
 
-# ===== STATE =====
+TIMEOUT = 15
 last_seen = {}
-status = {}  # "online" / "offline"
+alerted = set()
 
-
-# ===== DISCORD =====
 def send_discord(msg):
     if not DISCORD_WEBHOOK:
-        print("Missing webhook")
+        print("[ERROR] Missing webhook")
         return
-
     try:
         requests.post(DISCORD_WEBHOOK, json={"content": msg})
     except Exception as e:
-        print("Discord error:", e)
+        print("[DISCORD ERROR]", e)
 
-
-# ===== HEARTBEAT ENDPOINT =====
 @app.route("/heartbeat", methods=["POST"])
 def heartbeat():
     data = request.json
-
     if not data or "name" not in data:
         return "missing name", 400
 
-    pc = data["name"]
+    name = data["name"]
+    last_seen[name] = time.time()
 
-    last_seen[pc] = time.time()
-
-    # mark as online if previously offline
-    if status.get(pc) == "offline":
-        status[pc] = "online"
-        send_discord(f"✅ ONLINE: {pc}")
-
-    else:
-        status[pc] = "online"
-
-    print(f"heartbeat: {pc}", flush=True)
-
+    print(f"[HEARTBEAT] {name}", flush=True)
     return "ok"
 
 
-# ===== MONITOR LOOP =====
-def monitor():
+def monitor_loop():
     while True:
         now = time.time()
 
-        for pc, last in list(last_seen.items()):
-            if now - last > TIMEOUT:
-                if status.get(pc) != "offline":
-                    status[pc] = "offline"
-                    send_discord(f"🚨 OFFLINE: {pc}")
+        for node, last in list(last_seen.items()):
 
-        time.sleep(CHECK_INTERVAL)
+            if now - last > TIMEOUT:
+                if node not in alerted:
+                    send_discord(f"🚨 OFFLINE: {node}")
+                    alerted.add(node)
+
+            else:
+                if node in alerted:
+                    send_discord(f"✅ ONLINE: {node}")
+                    alerted.remove(node)
+
+        time.sleep(2)
 
 
 if __name__ == "__main__":
-    threading.Thread(target=monitor, daemon=True).start()
+    threading.Thread(target=monitor_loop, daemon=True).start()
     app.run(host="0.0.0.0", port=5000)

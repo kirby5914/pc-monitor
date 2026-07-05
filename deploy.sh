@@ -7,27 +7,29 @@ echo "🔄 Pulling latest code..."
 git fetch origin main
 git reset --hard origin/main
 
-echo "🐍 Setting up virtual environment (if needed)..."
+echo "🐍 Ensuring virtual environment..."
 if [ ! -d ".venv" ]; then
-  python3 -m venv .venv
+    python3 -m venv .venv
 fi
 
-source .venv/bin/activate
-
 echo "📦 Installing dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
+./.venv/bin/pip install --upgrade pip
+./.venv/bin/pip install -r requirements.txt
 
 echo "🔁 Restarting service..."
-sudo systemctl daemon-reload
-sudo systemctl restart pc-monitor
+systemctl daemon-reload
+systemctl restart pc-monitor.service
 
 sleep 2
 
-if ! systemctl is-active --quiet pc-monitor; then
-  echo "❌ Service failed to start"
-  exit 1
+echo "📊 Service status:"
+systemctl --no-pager status pc-monitor.service
+
+if ! systemctl is-active --quiet pc-monitor.service; then
+    echo "❌ Service failed to start"
+    journalctl -u pc-monitor.service -n 50 --no-pager
+    exit 1
 fi
 
 echo "✅ Deploy complete"
-echo "✅ Finished at: $(date)"
+echo "🕒 Finished at: $(date)"

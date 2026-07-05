@@ -1,5 +1,5 @@
 [Unit]
-Description=Heartbeat Monitor
+Description=Heartbeat Agent
 After=network-online.target
 Wants=network-online.target
 
@@ -9,7 +9,7 @@ WorkingDirectory=/opt/heartbeat
 EnvironmentFile=/opt/heartbeat/.env
 ExecStart=/opt/heartbeat/.venv/bin/python /opt/heartbeat/heartbeat.py
 Restart=always
-RestartSec=5
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

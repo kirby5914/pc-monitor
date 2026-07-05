@@ -9,55 +9,52 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 INSTALL_DIR="/opt/heartbeat"
-REPO="https://raw.githubusercontent.com/kirby5914/pc-monitor/main/node"
+PI_SERVER="http://192.168.1.180:5000"
 
 mkdir -p "$INSTALL_DIR"
 
-echo "Downloading files..."
+echo "Installing system dependencies..."
+apt update -y
+apt install -y python3 python3-pip python3-venv curl
 
-curl -fsSL "$REPO/heartbeat.py" -o "$INSTALL_DIR/heartbeat.py"
-curl -fsSL "$REPO/.env.example" -o "$INSTALL_DIR/.env"
+echo "Enter node name:"
+read NODE_NAME
 
-echo "Setting up node configuration..."
-
-read -p "Enter node name (e.g. Plex): " NODE_NAME
-read -p "Enter Pi server URL: " PI_SERVER
-
+echo "Writing environment file..."
 cat > "$INSTALL_DIR/.env" <<EOF
 NODE_NAME=$NODE_NAME
-PI_SERVER="http://192.168.1.180:5000"
+PI_SERVER=$PI_SERVER
 EOF
 
-cd "$INSTALL_DIR"
+echo "Creating virtual environment..."
+python3 -m venv "$INSTALL_DIR/.venv"
 
-echo "Checking system dependencies..."
+echo "Installing Python dependencies..."
+$INSTALL_DIR/.venv/bin/pip install --upgrade pip
+$INSTALL_DIR/.venv/bin/pip install requests python-dotenv
 
-apt update -y
+echo "Installing heartbeat service..."
+cat > /etc/systemd/system/heartbeat.service <<EOF
+[Unit]
+Description=Heartbeat Agent
+After=network-online.target
+Wants=network-online.target
 
-apt install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    curl
+[Service]
+Type=simple
+WorkingDirectory=/opt/heartbeat
+EnvironmentFile=/opt/heartbeat/.env
+ExecStart=/opt/heartbeat/.venv/bin/python /opt/heartbeat/heartbeat.py
+Restart=always
+RestartSec=3
 
-echo "Creating Python virtual environment..."
-python3 -m venv .venv
-
-echo "Installing dependencies..."
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install requests python-dotenv
-
-echo "Installing systemd service..."
-
-curl -fsSL "$REPO/services/heartbeat.service" -o /etc/systemd/system/heartbeat.service
+[Install]
+WantedBy=multi-user.target
+EOF
 
 systemctl daemon-reload
 systemctl enable heartbeat.service
 systemctl restart heartbeat.service
 
-echo ""
-echo "✅ Heartbeat installed successfully!"
-echo "Service status:"
-systemctl stop heartbeat.service
-systemctl start heartbeat.service 
+echo "✅ Installed successfully"
 systemctl status heartbeat.service --no-pager
