@@ -4,10 +4,7 @@ set -e
 echo "== PC Monitor Deploy =="
 
 # Must run as root (prevents sudo issues later)
-if [ "$EUID" -ne 0 ]; then
-    echo "Run this with: sudo ./deploy.sh"
-    exit 1
-fi
+
 
 cd /opt/pc-monitor
 
@@ -33,8 +30,8 @@ echo "📦 Installing dependencies..."
 ./.venv/bin/pip install -r requirements.txt
 
 echo "🔁 Restarting service..."
-systemctl daemon-reload
-systemctl restart pc-monitor.service
+sudo systemctl daemon-reload
+sudo systemctl restart pc-monitor.service
 
 sleep 2
 
