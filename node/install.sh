@@ -25,7 +25,7 @@ read -p "Enter Pi server URL: " PI_SERVER
 
 cat > "$INSTALL_DIR/.env" <<EOF
 NODE_NAME=$NODE_NAME
-PI_SERVER=$PI_SERVER
+PI_SERVER="http://192.168.1.180:5000"
 EOF
 
 cd "$INSTALL_DIR"
