@@ -58,4 +58,6 @@ systemctl restart heartbeat.service
 echo ""
 echo "✅ Heartbeat installed successfully!"
 echo "Service status:"
+systemctl stop heartbeat.service
+systemctl start heartbeat.service 
 systemctl status heartbeat.service --no-pager
